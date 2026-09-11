@@ -5,62 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Gastos</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-            --border: #e2e8f0;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            background-color: var(--card);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
-        }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; margin: 0; }
+        .container { background-color: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
         .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
-        .tab {
-            flex: 1; text-align: center; padding: 10px; cursor: pointer;
-            font-weight: bold; color: #64748b; transition: 0.3s;
-        }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: #64748b; transition: 0.3s; }
         .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Formulário */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
-        input, select {
-            width: 100%; padding: 10px; border: 1px solid #cbd5e1;
-            border-radius: 6px; box-sizing: border-box; font-size: 14px;
-        }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         #campo-parcelas { display: none; }
-        button {
-            width: 100%; padding: 12px; background-color: var(--primary);
-            color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
-        }
+        button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
         #status { margin-top: 15px; text-align: center; font-size: 14px; }
 
-        /* Dashboard */
-        .resumo-card {
-            background: var(--primary); color: white; padding: 20px;
-            border-radius: 8px; text-align: center; margin-bottom: 20px;
-        }
-        .resumo-card h3 { margin: 0; font-size: 16px; font-weight: normal; opacity: 0.9; }
-        .resumo-card h2 { margin: 10px 0 0 0; font-size: 32px; }
+        .resumo-card { background: var(--primary); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .resumo-card h3 { margin: 0; font-size: 15px; font-weight: normal; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .resumo-card select { background: white; color: black; border: none; padding: 5px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .resumo-card h2 { margin: 15px 0 0 0; font-size: 32px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: #f1f5f9; color: #475569; }
         .carregando { text-align: center; padding: 20px; color: #64748b; }
@@ -74,12 +40,16 @@
         <div class="tab" onclick="mudarAba('dashboard'); carregarDados()">Dashboard</div>
     </div>
 
-    <!-- Aba de Lançamento -->
+    <!-- ABA DE LANÇAR OS GASTOS -->
     <div id="lancamento" class="tab-content active">
         <form id="gastoForm">
             <div class="form-group">
+                <label>Data da Compra</label>
+                <input type="date" id="dataCompra" required>
+            </div>
+            <div class="form-group">
                 <label>Descrição</label>
-                <input type="text" id="descricao" required>
+                <input type="text" id="descricao" placeholder="Ex: Mercado, TV, Celular" required>
             </div>
             <div class="form-group">
                 <label>Valor Total (R$)</label>
@@ -95,12 +65,13 @@
             <div class="form-group">
                 <label>Forma de Pagamento</label>
                 <select id="formaPagamento" onchange="verificarParcelas()" required>
-                    <option value="À vista">À vista</option>
-                    <option value="Parcelado">Parcelado</option>
+                    <option value="Débito / Pix / Dinheiro">Débito / Pix / Dinheiro (Cai no Mês Atual)</option>
+                    <option value="Cartão de Crédito (1x)">Cartão de Crédito - 1x (Próxima Fatura)</option>
+                    <option value="Cartão de Crédito (Parcelado)">Cartão de Crédito - Parcelado</option>
                 </select>
             </div>
             <div class="form-group" id="campo-parcelas">
-                <label>Parcelas</label>
+                <label>Número de Parcelas</label>
                 <input type="number" id="parcelas" min="2" value="2">
             </div>
             <button type="submit" id="btnSubmit">Registrar Gasto</button>
@@ -108,21 +79,23 @@
         </form>
     </div>
 
-    <!-- Aba de Dashboard -->
+    <!-- ABA DO DASHBOARD -->
     <div id="dashboard" class="tab-content">
         <div class="resumo-card">
-            <h3 id="mesAtualTitulo">Total Gasto - Este Mês</h3>
+            <h3>
+                Gastos Previstos para: 
+                <select id="filtroMes" onchange="atualizarDashboard()"></select>
+            </h3>
             <h2 id="totalMes">R$ 0,00</h2>
         </div>
 
-        <h3>Histórico Recente</h3>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
                         <th>Data</th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
+                        <th>Descrição e Parcela</th>
+                        <th>Valor (R$)</th>
                     </tr>
                 </thead>
                 <tbody id="tabelaDados">
@@ -134,21 +107,21 @@
 </div>
 
 <script>
-    // COLE SUA URL AQUI
+    // COLE SUA URL AQUI NESTA LINHA ABAIXO
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec';
 
-    // Lógica de Abas
+    document.getElementById('dataCompra').valueAsDate = new Date();
+    let todosOsGastos = []; 
+
     function mudarAba(abaId) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
+        document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
         document.querySelector(`.tab[onclick*="${abaId}"]`).classList.add('active');
         document.getElementById(abaId).classList.add('active');
     }
 
-    // Lógica do Formulário (Mantida e adaptada)
     function verificarParcelas() {
-        const isParcelado = document.getElementById('formaPagamento').value === 'Parcelado';
+        const forma = document.getElementById('formaPagamento').value;
+        const isParcelado = forma === 'Cartão de Crédito (Parcelado)';
         document.getElementById('campo-parcelas').style.display = isParcelado ? 'block' : 'none';
         document.getElementById('parcelas').required = isParcelado;
     }
@@ -157,77 +130,102 @@
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');
         const status = document.getElementById('status');
-        btn.innerText = 'Enviando...'; btn.disabled = true; status.innerText = '';
+        btn.innerText = 'Calculando Parcelas e Enviando...'; btn.disabled = true; status.innerText = '';
         
         const payload = {
+            dataCompra: document.getElementById('dataCompra').value,
             descricao: document.getElementById('descricao').value,
             valor: document.getElementById('valor').value,
             tipo: document.getElementById('tipo').value,
             formaPagamento: document.getElementById('formaPagamento').value,
-            parcelas: document.getElementById('formaPagamento').value === 'Parcelado' ? document.getElementById('parcelas').value : 1
+            parcelas: document.getElementById('formaPagamento').value === 'Cartão de Crédito (Parcelado)' ? document.getElementById('parcelas').value : 1
         };
 
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(res => res.json())
         .then(data => {
-            status.innerText = 'Gasto registrado!';
+            if(data.status !== 'sucesso') throw new Error(data.mensagem);
+            status.innerText = 'Gasto e parcelas registrados na planilha!';
             status.style.color = 'green';
             document.getElementById('gastoForm').reset();
+            document.getElementById('dataCompra').valueAsDate = new Date();
             verificarParcelas();
+        })
+        .catch(err => {
+            status.innerText = 'Erro ao salvar. Verifique o console.';
+            status.style.color = 'red';
         })
         .finally(() => { btn.innerText = 'Registrar Gasto'; btn.disabled = false; });
     });
 
-    // Lógica do Dashboard
     function carregarDados() {
-        const tbody = document.getElementById('tabelaDados');
-        tbody.innerHTML = '<tr><td colspan="3" class="carregando">Buscando informações na planilha...</td></tr>';
+        document.getElementById('tabelaDados').innerHTML = '<tr><td colspan="3" class="carregando">Buscando faturas...</td></tr>';
         
         fetch(SCRIPT_URL)
         .then(res => res.json())
         .then(resposta => {
             if(resposta.status !== 'sucesso') throw new Error();
-            
-            const dados = resposta.dados.reverse(); // Mais recentes primeiro
-            const dataAtual = new Date();
-            const mesAtual = dataAtual.getMonth();
-            const anoAtual = dataAtual.getFullYear();
-            
-            let totalMes = 0;
-            tbody.innerHTML = '';
-
-            // Nomes dos meses para o título
-            const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            document.getElementById('mesAtualTitulo').innerText = `Total Gasto - ${nomesMeses[mesAtual]} de ${anoAtual}`;
-
-            dados.forEach(gasto => {
-                const dataRegistro = new Date(gasto.data);
-                const valor = parseFloat(gasto.valor);
-
-                // Soma o total apenas se for do mês atual
-                if(dataRegistro.getMonth() === mesAtual && dataRegistro.getFullYear() === anoAtual) {
-                    totalMes += valor;
-                }
-
-                // Cria a linha da tabela
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${dataRegistro.toLocaleDateString('pt-BR')}</td>
-                    <td>${gasto.descricao} <br><small style="color:#64748b">${gasto.tipo} | ${gasto.formaPagamento}</small></td>
-                    <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('totalMes').innerText = `R$ ${totalMes.toFixed(2).replace('.', ',')}`;
-            
-            if(dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="carregando">Nenhum gasto registrado ainda.</td></tr>';
-            }
-        })
-        .catch(err => {
-            tbody.innerHTML = '<tr><td colspan="3" class="carregando" style="color:red">Erro ao carregar os dados.</td></tr>';
+            todosOsGastos = resposta.dados;
+            preencherFiltroMeses();
+            atualizarDashboard();
+        }).catch(err => {
+            document.getElementById('tabelaDados').innerHTML = '<tr><td colspan="3" class="carregando" style="color:red">Erro ao carregar os dados.</td></tr>';
         });
+    }
+
+    function preencherFiltroMeses() {
+        const selectMes = document.getElementById('filtroMes');
+        const mesesSet = new Set();
+        
+        todosOsGastos.forEach(g => mesesSet.add(g.mesAnoPagamento));
+        
+        const mesesArr = Array.from(mesesSet).sort((a, b) => {
+            const [mA, yA] = a.split('/'); const [mB, yB] = b.split('/');
+            return new Date(yA, mA - 1) - new Date(yB, mB - 1);
+        });
+
+        selectMes.innerHTML = '';
+        mesesArr.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m; opt.textContent = m;
+            selectMes.appendChild(opt);
+        });
+
+        if(mesesArr.length > 0) {
+            const hoje = new Date();
+            const mesAtual = (hoje.getMonth() + 1).toString().padStart(2, '0') + '/' + hoje.getFullYear();
+            
+            if(mesesArr.includes(mesAtual)) selectMes.value = mesAtual;
+            else selectMes.value = mesesArr[mesesArr.length - 1]; 
+        }
+    }
+
+    function atualizarDashboard() {
+        const mesSelecionado = document.getElementById('filtroMes').value;
+        const tbody = document.getElementById('tabelaDados');
+        tbody.innerHTML = '';
+        let total = 0;
+
+        const filtrados = todosOsGastos.filter(g => g.mesAnoPagamento === mesSelecionado);
+        
+        filtrados.forEach(g => {
+            const valor = parseFloat(g.valor);
+            total += valor;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${g.dataCompra}</td>
+                <td>${g.descricao} <br><small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small></td>
+                <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('totalMes').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        
+        if(filtrados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="carregando">Nenhum gasto previsto para este mês.</td></tr>';
+        }
     }
 </script>
 
