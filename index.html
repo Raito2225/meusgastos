@@ -10,17 +10,16 @@
             --bg: #f8fafc;
             --card: #ffffff;
             --text: #1e293b;
+            --border: #e2e8f0;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
         }
         .container {
             background-color: var(--card);
@@ -28,96 +27,138 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
         }
-        h2 { margin-top: 0; text-align: center; color: var(--primary); }
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+        .tab {
+            flex: 1; text-align: center; padding: 10px; cursor: pointer;
+            font-weight: bold; color: #64748b; transition: 0.3s;
+        }
+        .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Formulário */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
         input, select {
             width: 100%; padding: 10px; border: 1px solid #cbd5e1;
             border-radius: 6px; box-sizing: border-box; font-size: 14px;
         }
-        input:focus, select:focus {
-            outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        }
         #campo-parcelas { display: none; }
         button {
             width: 100%; padding: 12px; background-color: var(--primary);
-            color: white; border: none; border-radius: 6px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            transition: background-color 0.2s; margin-top: 10px;
+            color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
         }
-        button:hover { background-color: #1d4ed8; }
-        #status { margin-top: 15px; text-align: center; font-size: 14px; font-weight: 500; }
+        #status { margin-top: 15px; text-align: center; font-size: 14px; }
+
+        /* Dashboard */
+        .resumo-card {
+            background: var(--primary); color: white; padding: 20px;
+            border-radius: 8px; text-align: center; margin-bottom: 20px;
+        }
+        .resumo-card h3 { margin: 0; font-size: 16px; font-weight: normal; opacity: 0.9; }
+        .resumo-card h2 { margin: 10px 0 0 0; font-size: 32px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #f1f5f9; color: #475569; }
+        .carregando { text-align: center; padding: 20px; color: #64748b; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Lançar Novo Gasto</h2>
-    <form id="gastoForm">
-        <div class="form-group">
-            <label for="descricao">Descrição (ex: Conta de Luz, Mercado)</label>
-            <input type="text" id="descricao" required>
+    <div class="tabs">
+        <div class="tab active" onclick="mudarAba('lancamento')">Lançar Gasto</div>
+        <div class="tab" onclick="mudarAba('dashboard'); carregarDados()">Dashboard</div>
+    </div>
+
+    <!-- Aba de Lançamento -->
+    <div id="lancamento" class="tab-content active">
+        <form id="gastoForm">
+            <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" id="descricao" required>
+            </div>
+            <div class="form-group">
+                <label>Valor Total (R$)</label>
+                <input type="number" step="0.01" id="valor" required>
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="tipo" required>
+                    <option value="Fixo">Fixo</option>
+                    <option value="Variável">Variável</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Forma de Pagamento</label>
+                <select id="formaPagamento" onchange="verificarParcelas()" required>
+                    <option value="À vista">À vista</option>
+                    <option value="Parcelado">Parcelado</option>
+                </select>
+            </div>
+            <div class="form-group" id="campo-parcelas">
+                <label>Parcelas</label>
+                <input type="number" id="parcelas" min="2" value="2">
+            </div>
+            <button type="submit" id="btnSubmit">Registrar Gasto</button>
+            <div id="status"></div>
+        </form>
+    </div>
+
+    <!-- Aba de Dashboard -->
+    <div id="dashboard" class="tab-content">
+        <div class="resumo-card">
+            <h3 id="mesAtualTitulo">Total Gasto - Este Mês</h3>
+            <h2 id="totalMes">R$ 0,00</h2>
         </div>
 
-        <div class="form-group">
-            <label for="valor">Valor Total (R$)</label>
-            <input type="number" step="0.01" id="valor" placeholder="0.00" required>
+        <h3>Histórico Recente</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaDados">
+                    <tr><td colspan="3" class="carregando">Carregando dados...</td></tr>
+                </tbody>
+            </table>
         </div>
-
-        <div class="form-group">
-            <label for="tipo">Tipo de Gasto</label>
-            <select id="tipo" required>
-                <option value="Fixo">Fixo (ex: Aluguel, Internet)</option>
-                <option value="Variável">Variável (ex: Lazer, Restaurante)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="formaPagamento">Forma de Pagamento</label>
-            <select id="formaPagamento" onchange="verificarParcelas()" required>
-                <option value="À vista">À vista</option>
-                <option value="Parcelado">Parcelado</option>
-            </select>
-        </div>
-
-        <div class="form-group" id="campo-parcelas">
-            <label for="parcelas">Número de Parcelas</label>
-            <input type="number" id="parcelas" min="2" value="2">
-        </div>
-
-        <button type="submit" id="btnSubmit">Registrar Gasto</button>
-        <div id="status"></div>
-    </form>
+    </div>
 </div>
 
 <script>
-    // Substitua o link abaixo pela URL que o Google Apps Script gerou
+    // COLE SUA URL AQUI
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec';
 
+    // Lógica de Abas
+    function mudarAba(abaId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`.tab[onclick*="${abaId}"]`).classList.add('active');
+        document.getElementById(abaId).classList.add('active');
+    }
+
+    // Lógica do Formulário (Mantida e adaptada)
     function verificarParcelas() {
-        const forma = document.getElementById('formaPagamento').value;
-        const campoParcelas = document.getElementById('campo-parcelas');
-        if (forma === 'Parcelado') {
-            campoParcelas.style.display = 'block';
-            document.getElementById('parcelas').required = true;
-        } else {
-            campoParcelas.style.display = 'none';
-            document.getElementById('parcelas').required = false;
-        }
+        const isParcelado = document.getElementById('formaPagamento').value === 'Parcelado';
+        document.getElementById('campo-parcelas').style.display = isParcelado ? 'block' : 'none';
+        document.getElementById('parcelas').required = isParcelado;
     }
 
     document.getElementById('gastoForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
         const btn = document.getElementById('btnSubmit');
-        const statusDiv = document.getElementById('status');
-        btn.innerText = 'Enviando...';
-        btn.disabled = true;
-        statusDiv.innerText = '';
-        statusDiv.style.color = 'black';
-
+        const status = document.getElementById('status');
+        btn.innerText = 'Enviando...'; btn.disabled = true; status.innerText = '';
+        
         const payload = {
             descricao: document.getElementById('descricao').value,
             valor: document.getElementById('valor').value,
@@ -126,31 +167,68 @@
             parcelas: document.getElementById('formaPagamento').value === 'Parcelado' ? document.getElementById('parcelas').value : 1
         };
 
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(res => res.json())
         .then(data => {
-            if(data.status === 'sucesso') {
-                statusDiv.innerText = 'Gasto registrado com sucesso na planilha!';
-                statusDiv.style.color = 'green';
-                document.getElementById('gastoForm').reset();
-                verificarParcelas(); // Reseta a exibição do campo de parcelas
-            } else {
-                throw new Error(data.mensagem);
+            status.innerText = 'Gasto registrado!';
+            status.style.color = 'green';
+            document.getElementById('gastoForm').reset();
+            verificarParcelas();
+        })
+        .finally(() => { btn.innerText = 'Registrar Gasto'; btn.disabled = false; });
+    });
+
+    // Lógica do Dashboard
+    function carregarDados() {
+        const tbody = document.getElementById('tabelaDados');
+        tbody.innerHTML = '<tr><td colspan="3" class="carregando">Buscando informações na planilha...</td></tr>';
+        
+        fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(resposta => {
+            if(resposta.status !== 'sucesso') throw new Error();
+            
+            const dados = resposta.dados.reverse(); // Mais recentes primeiro
+            const dataAtual = new Date();
+            const mesAtual = dataAtual.getMonth();
+            const anoAtual = dataAtual.getFullYear();
+            
+            let totalMes = 0;
+            tbody.innerHTML = '';
+
+            // Nomes dos meses para o título
+            const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            document.getElementById('mesAtualTitulo').innerText = `Total Gasto - ${nomesMeses[mesAtual]} de ${anoAtual}`;
+
+            dados.forEach(gasto => {
+                const dataRegistro = new Date(gasto.data);
+                const valor = parseFloat(gasto.valor);
+
+                // Soma o total apenas se for do mês atual
+                if(dataRegistro.getMonth() === mesAtual && dataRegistro.getFullYear() === anoAtual) {
+                    totalMes += valor;
+                }
+
+                // Cria a linha da tabela
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${dataRegistro.toLocaleDateString('pt-BR')}</td>
+                    <td>${gasto.descricao} <br><small style="color:#64748b">${gasto.tipo} | ${gasto.formaPagamento}</small></td>
+                    <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalMes').innerText = `R$ ${totalMes.toFixed(2).replace('.', ',')}`;
+            
+            if(dados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="carregando">Nenhum gasto registrado ainda.</td></tr>';
             }
         })
-        .catch(error => {
-            console.error('Erro:', error);
-            statusDiv.innerText = 'Erro ao registrar gasto. Verifique o console.';
-            statusDiv.style.color = 'red';
-        })
-        .finally(() => {
-            btn.innerText = 'Registrar Gasto';
-            btn.disabled = false;
+        .catch(err => {
+            tbody.innerHTML = '<tr><td colspan="3" class="carregando" style="color:red">Erro ao carregar os dados.</td></tr>';
         });
-    });
+    }
 </script>
 
 </body>
