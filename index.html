@@ -2,56 +2,50 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Controle de Gastos</title>
+    
+    <!-- Configurações para PWA (Aplicativo) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+    
+    <!-- Biblioteca de Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; margin: 0; }
-        .container { background-color: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --fixo: #2563eb; --variavel: #f59e0b; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); padding: 10px; display: flex; justify-content: center; margin: 0; }
+        .container { background-color: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
         
-        /* Abas */
         .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
         .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: #64748b; transition: 0.3s; }
         .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Formulário */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
         input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         #campo-parcelas { display: none; }
         button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #1d4ed8; }
-        #status { margin-top: 15px; text-align: center; font-size: 14px; }
-
-        /* Dashboard - Lista Expansível */
-        .dashboard-header { text-align: center; margin-bottom: 20px; color: var(--primary); }
+        
+        .dashboard-header { text-align: center; margin-bottom: 10px; color: var(--primary); }
+        .grafico-container { position: relative; height: 180px; width: 100%; margin-bottom: 20px; }
+        
         .mes-container { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: var(--card); }
-        
-        .mes-header { 
-            background: var(--primary); color: white; padding: 15px 20px; 
-            cursor: pointer; display: flex; justify-content: space-between; align-items: center; 
-            transition: background 0.3s; user-select: none;
-        }
+        .mes-header { background: var(--primary); color: white; padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; user-select: none; }
         .mes-header.collapsed { background: #f1f5f9; color: var(--text); }
-        .mes-header:hover { opacity: 0.9; }
-        
         .mes-title { font-size: 16px; font-weight: bold; }
         .mes-total { font-size: 18px; font-weight: bold; }
-        
         .mes-body { display: block; padding: 0; }
         .mes-body.collapsed { display: none; }
         
-        /* Divisória de Meses Anteriores */
-        .divider { 
-            text-align: center; margin: 30px 0 20px 0; color: #64748b; 
-            font-size: 15px; border-bottom: 1px solid #cbd5e1; line-height: 0.1em; 
-        }
+        .divider { text-align: center; margin: 30px 0 20px 0; color: #64748b; font-size: 15px; border-bottom: 1px solid #cbd5e1; line-height: 0.1em; }
         .divider span { background: var(--card); padding: 0 15px; }
         
         table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: #f8fafc; color: #475569; font-weight: 600; }
         .carregando { text-align: center; padding: 20px; color: #64748b; }
     </style>
@@ -60,7 +54,7 @@
 
 <div class="container">
     <div class="tabs">
-        <div class="tab active" onclick="mudarAba('lancamento')">Lançar Gasto</div>
+        <div class="tab active" onclick="mudarAba('lancamento')">Lançar</div>
         <div class="tab" onclick="mudarAba('dashboard'); carregarDados()">Dashboard</div>
     </div>
 
@@ -73,7 +67,7 @@
             </div>
             <div class="form-group">
                 <label>Descrição</label>
-                <input type="text" id="descricao" placeholder="Ex: Mercado, TV, Celular" required>
+                <input type="text" id="descricao" placeholder="Ex: Mercado, Conta de Luz" required>
             </div>
             <div class="form-group">
                 <label>Valor Total (R$)</label>
@@ -105,25 +99,25 @@
 
     <!-- Aba de Dashboard -->
     <div id="dashboard" class="tab-content">
-        <h2 class="dashboard-header">Resumo Mensal</h2>
+        <div class="grafico-container">
+            <canvas id="graficoGastos"></canvas>
+        </div>
+        
         <div id="listaMeses">
-            <div class="carregando">Clique na aba para carregar...</div>
+            <div class="carregando">Lendo a planilha...</div>
         </div>
     </div>
 </div>
 
 <script>
-    // =========================================================
-    // URLs já configuradas
-    // =========================================================
+    // Suas URLs já configuradas
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec'; 
-    
-    // O final da URL de leitura foi ajustado de pubhtml para pub?output=csv
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0gqmdVYvp5bbtA0xTj7rGVLvnzkfdUZ-bNCjIyX_zgCdjryXlqZ48nvG9wyoosU9Bn_wmS6SZiXCH/pub?gid=51915627&single=true&output=csv'; 
-    // =========================================================
+
+    let todosOsGastos = []; 
+    let myChart = null; // Guarda a instância do gráfico
 
     document.getElementById('dataCompra').valueAsDate = new Date();
-    let todosOsGastos = []; 
 
     function mudarAba(abaId) {
         document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
@@ -138,7 +132,6 @@
         document.getElementById('parcelas').required = isParcelado;
     }
 
-    // Lógica para SALVAR o gasto
     document.getElementById('gastoForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');
@@ -157,21 +150,14 @@
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(res => res.json())
         .then(data => {
-            if(data.status !== 'sucesso') throw new Error(data.mensagem);
-            status.innerText = 'Gasto registrado com sucesso!';
-            status.style.color = 'green';
+            status.innerText = 'Registrado com sucesso!'; status.style.color = 'green';
             document.getElementById('gastoForm').reset();
             document.getElementById('dataCompra').valueAsDate = new Date();
             verificarParcelas();
         })
-        .catch(err => {
-            status.innerText = 'Erro ao salvar. Verifique o console.';
-            status.style.color = 'red';
-        })
         .finally(() => { btn.innerText = 'Registrar Gasto'; btn.disabled = false; });
     });
 
-    // Função que expande/recolhe o mês ao clicar
     function toggleMes(elemento) {
         elemento.classList.toggle('collapsed');
         elemento.nextElementSibling.classList.toggle('collapsed');
@@ -180,15 +166,13 @@
     function formatarNomeMes(mesAno) {
         if(!mesAno || !mesAno.includes('/')) return mesAno;
         const [m, a] = mesAno.split('/');
-        const nomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
         return `${nomes[parseInt(m) - 1]}/${a}`;
     }
 
-    // Processa o arquivo CSV
     function processarCSV(csvTexto) {
         const linhas = csvTexto.split('\n');
         const resultado = [];
-        
         for (let i = 1; i < linhas.length; i++) { 
             if (linhas[i].trim() === '') continue;
             const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -208,129 +192,128 @@
     }
 
     function carregarDados() {
-        const listaMeses = document.getElementById('listaMeses');
-        listaMeses.innerHTML = '<div class="carregando">Lendo a planilha...</div>';
-        
-        const urlSemCache = CSV_URL + "&t=" + new Date().getTime();
-
-        fetch(urlSemCache)
-        .then(res => {
-            if(!res.ok) throw new Error("Erro de rede");
-            return res.text();
-        })
+        document.getElementById('listaMeses').innerHTML = '<div class="carregando">Lendo a planilha...</div>';
+        fetch(CSV_URL + "&t=" + new Date().getTime())
+        .then(res => res.text())
         .then(csvTexto => {
             todosOsGastos = processarCSV(csvTexto);
             renderizarDashboard();
-        }).catch(err => {
-            listaMeses.innerHTML = '<div class="carregando" style="color:red">Erro ao baixar dados do Google Sheets.</div>';
         });
     }
 
-    // Função que constrói o bloco de cada mês (HTML)
     function criarElementoMes(mesStr, isExpanded) {
         const gastosDoMes = todosOsGastos.filter(g => g.mesAnoPagamento === mesStr);
-        let totalMes = 0;
+        let totalMes = 0; let totalFixo = 0; let totalVar = 0;
         let linhasTabela = '';
 
         gastosDoMes.forEach(g => {
-            const numOriginal = g.valor.toString().replace('R$', '').trim().replace('.', '').replace(',', '.');
-            const valor = parseFloat(numOriginal) || 0;
+            const valor = parseFloat(g.valor.replace('R$', '').trim().replace('.', '').replace(',', '.')) || 0;
             totalMes += valor;
+            if(g.tipo === 'Fixo') totalFixo += valor; else totalVar += valor;
+            
+            const corPonto = g.tipo === 'Fixo' ? 'var(--fixo)' : 'var(--variavel)';
             
             linhasTabela += `
                 <tr>
-                    <td>${g.dataCompra}</td>
-                    <td>${g.descricao} <br><small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small></td>
+                    <td><small>${g.dataCompra.slice(0,5)}</small></td>
+                    <td>
+                        <span style="color:${corPonto}; font-size:10px;">⬤</span> ${g.descricao} <br>
+                        <small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small>
+                    </td>
                     <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
                 </tr>
             `;
         });
 
         const collapsedClass = isExpanded ? '' : 'collapsed';
-        const nomeMesFormatado = formatarNomeMes(mesStr);
-
+        
         const mesDiv = document.createElement('div');
         mesDiv.className = 'mes-container';
         mesDiv.innerHTML = `
             <div class="mes-header ${collapsedClass}" onclick="toggleMes(this)">
-                <span class="mes-title">${nomeMesFormatado}</span>
+                <div style="display:flex; flex-direction:column;">
+                    <span class="mes-title">${formatarNomeMes(mesStr)}</span>
+                    <small style="font-size:11px; font-weight:normal; margin-top:2px;">
+                        <span style="color:${isExpanded ? '#bae6fd' : '#2563eb'};">Fixo: R$ ${totalFixo.toFixed(2)}</span> | 
+                        <span style="color:${isExpanded ? '#fde68a' : '#f59e0b'};">Var: R$ ${totalVar.toFixed(2)}</span>
+                    </small>
+                </div>
                 <span class="mes-total">R$ ${totalMes.toFixed(2).replace('.', ',')}</span>
             </div>
             <div class="mes-body ${collapsedClass}">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Descrição / Parcela</th>
-                            <th>Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linhasTabela}
-                    </tbody>
-                </table>
+                <table><tbody>${linhasTabela}</tbody></table>
             </div>
         `;
         return mesDiv;
+    }
+
+    function atualizarGrafico(mesesFuturos) {
+        // Pega no máximo os próximos 6 meses para o gráfico não ficar espremido
+        const mesesGrafico = mesesFuturos.slice(0, 6).reverse(); 
+        
+        const labels = mesesGrafico.map(m => formatarNomeMes(m.str).split('/')[0]);
+        const dadosGrafico = mesesGrafico.map(m => {
+            const gastos = todosOsGastos.filter(g => g.mesAnoPagamento === m.str);
+            return gastos.reduce((acc, curr) => acc + (parseFloat(curr.valor.replace('.', '').replace(',', '.')) || 0), 0);
+        });
+
+        const ctx = document.getElementById('graficoGastos').getContext('2d');
+        if(myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Gastos Previstos (R$)', data: dadosGrafico,
+                    backgroundColor: '#3b82f6', borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
     }
 
     function renderizarDashboard() {
         const listaMeses = document.getElementById('listaMeses');
         listaMeses.innerHTML = ''; 
 
-        if(todosOsGastos.length === 0) {
-            listaMeses.innerHTML = '<div class="carregando">Nenhum gasto registrado ainda.</div>';
-            return;
-        }
+        if(todosOsGastos.length === 0) return;
 
-        // Pega os meses únicos e calcula um "peso numérico" (Ano * 12 + Mês) para ordená-mos corretamente
         const mesesSet = new Set(todosOsGastos.map(g => g.mesAnoPagamento));
-        const mesesMapeados = Array.from(mesesSet)
-            .filter(m => m.includes('/'))
+        const mesesMapeados = Array.from(mesesSet).filter(m => m.includes('/'))
             .map(m => {
                 const [mes, ano] = m.split('/');
                 return { str: m, peso: parseInt(ano) * 12 + parseInt(mes) };
             });
 
-        // Peso numérico do mês atual
         const hoje = new Date();
         const pesoAtual = hoje.getFullYear() * 12 + (hoje.getMonth() + 1);
 
-        // Separa os meses: "Atuais e Futuros" vs "Passados"
-        const mesesFuturos = mesesMapeados
-            .filter(m => m.peso >= pesoAtual)
-            .sort((a, b) => a.peso - b.peso); // Ordem Crescente (Set, Out, Nov...)
+        const mesesFuturos = mesesMapeados.filter(m => m.peso >= pesoAtual).sort((a, b) => a.peso - b.peso);
+        const mesesPassados = mesesMapeados.filter(m => m.peso < pesoAtual).sort((a, b) => b.peso - a.peso);
 
-        const mesesPassados = mesesMapeados
-            .filter(m => m.peso < pesoAtual)
-            .sort((a, b) => b.peso - a.peso); // Ordem Decrescente (Agosto, Julho...)
+        let mesParaExpandir = mesesFuturos.length > 0 ? (mesesFuturos.some(m => m.peso === pesoAtual) ? pesoAtual : mesesFuturos[0].peso) : null;
 
-        // Descobre qual mês deve vir expandido por padrão
-        let mesParaExpandir = null;
-        if (mesesFuturos.length > 0) {
-            // Expande o mês atual, se não achar o mês atual, expande o mês futuro mais próximo
-            const temMesAtual = mesesFuturos.some(m => m.peso === pesoAtual);
-            mesParaExpandir = temMesAtual ? pesoAtual : mesesFuturos[0].peso;
-        }
+        atualizarGrafico(mesesFuturos.length > 0 ? mesesFuturos : mesesPassados.slice(0, 6));
 
-        // 1. Renderiza os Meses Atuais e Futuros
-        mesesFuturos.forEach(m => {
-            const isExpanded = (m.peso === mesParaExpandir);
-            listaMeses.appendChild(criarElementoMes(m.str, isExpanded)); // Usando appendChild mantém a ordem!
-        });
+        mesesFuturos.forEach(m => listaMeses.appendChild(criarElementoMes(m.str, (m.peso === mesParaExpandir))));
 
-        // 2. Renderiza a Divisória de Meses Anteriores e insere os meses antigos
         if (mesesPassados.length > 0) {
-            const divider = document.createElement('h3');
-            divider.className = 'divider';
-            divider.innerHTML = '<span>Meses Anteriores</span>';
+            const divider = document.createElement('div');
+            divider.className = 'divider'; divider.innerHTML = '<span>Meses Anteriores</span>';
             listaMeses.appendChild(divider);
-
-            mesesPassados.forEach(m => {
-                // Meses passados começam sempre retraídos (isExpanded = false)
-                listaMeses.appendChild(criarElementoMes(m.str, false));
-            });
+            mesesPassados.forEach(m => listaMeses.appendChild(criarElementoMes(m.str, false)));
         }
+    }
+
+    // REGISTRO DO SERVICE WORKER (Para permitir instalar no celular)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Falhou: ', err));
+        });
     }
 </script>
 
