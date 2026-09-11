@@ -43,6 +43,13 @@
         .mes-body { display: block; padding: 0; }
         .mes-body.collapsed { display: none; }
         
+        /* Divisória de Meses Anteriores */
+        .divider { 
+            text-align: center; margin: 30px 0 20px 0; color: #64748b; 
+            font-size: 15px; border-bottom: 1px solid #cbd5e1; line-height: 0.1em; 
+        }
+        .divider span { background: var(--card); padding: 0 15px; }
+        
         table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: #f8fafc; color: #475569; font-weight: 600; }
@@ -107,15 +114,12 @@
 
 <script>
     // =========================================================
-    // CONFIGURAÇÕES - COLE SUAS URLs AQUI
+    // URLs já configuradas
     // =========================================================
-    
-    // URL gerada pelo Google Apps Script (Para SALVAR os dados)
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec'; 
     
-    // URL gerada em "Publicar na web > formato CSV" (Para LER os dados)
+    // O final da URL de leitura foi ajustado de pubhtml para pub?output=csv
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0gqmdVYvp5bbtA0xTj7rGVLvnzkfdUZ-bNCjIyX_zgCdjryXlqZ48nvG9wyoosU9Bn_wmS6SZiXCH/pub?gid=51915627&single=true&output=csv'; 
-
     // =========================================================
 
     document.getElementById('dataCompra').valueAsDate = new Date();
@@ -134,7 +138,7 @@
         document.getElementById('parcelas').required = isParcelado;
     }
 
-    // Lógica para SALVAR o gasto (Continua usando o Apps Script / POST)
+    // Lógica para SALVAR o gasto
     document.getElementById('gastoForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');
@@ -180,18 +184,14 @@
         return `${nomes[parseInt(m) - 1]}/${a}`;
     }
 
-    // Converte o texto CSV recebido da planilha em um Array de objetos
+    // Processa o arquivo CSV
     function processarCSV(csvTexto) {
         const linhas = csvTexto.split('\n');
         const resultado = [];
         
-        for (let i = 1; i < linhas.length; i++) { // Começa do 1 para pular o cabeçalho
+        for (let i = 1; i < linhas.length; i++) { 
             if (linhas[i].trim() === '') continue;
-            
-            // Separa por vírgula (expressão regular evita quebrar vírgulas dentro de textos)
             const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            
-            // Se a linha tiver dados válidos, salva no array limpando aspas e os apóstrofos que colocamos no backend
             if(valores.length >= 7) {
                 resultado.push({
                     dataCompra: valores[0].replace(/['"]/g, '').trim(),
@@ -207,12 +207,10 @@
         return resultado;
     }
 
-    // Lógica para LER os dados (Agora puxa direto do CSV ultra rápido)
     function carregarDados() {
         const listaMeses = document.getElementById('listaMeses');
         listaMeses.innerHTML = '<div class="carregando">Lendo a planilha...</div>';
         
-        // Colocamos o timestamp no final da URL para forçar o Google a não usar cache antigo
         const urlSemCache = CSV_URL + "&t=" + new Date().getTime();
 
         fetch(urlSemCache)
@@ -224,8 +222,56 @@
             todosOsGastos = processarCSV(csvTexto);
             renderizarDashboard();
         }).catch(err => {
-            listaMeses.innerHTML = '<div class="carregando" style="color:red">Erro ao baixar dados do Google Sheets. Certifique-se de que publicou o CSV.</div>';
+            listaMeses.innerHTML = '<div class="carregando" style="color:red">Erro ao baixar dados do Google Sheets.</div>';
         });
+    }
+
+    // Função que constrói o bloco de cada mês (HTML)
+    function criarElementoMes(mesStr, isExpanded) {
+        const gastosDoMes = todosOsGastos.filter(g => g.mesAnoPagamento === mesStr);
+        let totalMes = 0;
+        let linhasTabela = '';
+
+        gastosDoMes.forEach(g => {
+            const numOriginal = g.valor.toString().replace('R$', '').trim().replace('.', '').replace(',', '.');
+            const valor = parseFloat(numOriginal) || 0;
+            totalMes += valor;
+            
+            linhasTabela += `
+                <tr>
+                    <td>${g.dataCompra}</td>
+                    <td>${g.descricao} <br><small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small></td>
+                    <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
+                </tr>
+            `;
+        });
+
+        const collapsedClass = isExpanded ? '' : 'collapsed';
+        const nomeMesFormatado = formatarNomeMes(mesStr);
+
+        const mesDiv = document.createElement('div');
+        mesDiv.className = 'mes-container';
+        mesDiv.innerHTML = `
+            <div class="mes-header ${collapsedClass}" onclick="toggleMes(this)">
+                <span class="mes-title">${nomeMesFormatado}</span>
+                <span class="mes-total">R$ ${totalMes.toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div class="mes-body ${collapsedClass}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição / Parcela</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasTabela}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        return mesDiv;
     }
 
     function renderizarDashboard() {
@@ -237,65 +283,54 @@
             return;
         }
 
+        // Pega os meses únicos e calcula um "peso numérico" (Ano * 12 + Mês) para ordená-mos corretamente
         const mesesSet = new Set(todosOsGastos.map(g => g.mesAnoPagamento));
-        const mesesArr = Array.from(mesesSet).sort((a, b) => {
-            if(!a.includes('/') || !b.includes('/')) return 0;
-            const [mA, yA] = a.split('/'); const [mB, yB] = b.split('/');
-            return new Date(yA, mA - 1) - new Date(yB, mB - 1);
-        });
-
-        const hoje = new Date();
-        const mesAtualStr = (hoje.getMonth() + 1).toString().padStart(2, '0') + '/' + hoje.getFullYear();
-        const mesParaExpandir = mesesArr.includes(mesAtualStr) ? mesAtualStr : mesesArr[mesesArr.length - 1];
-
-        mesesArr.forEach(mes => {
-            const gastosDoMes = todosOsGastos.filter(g => g.mesAnoPagamento === mes);
-            let totalMes = 0;
-            let linhasTabela = '';
-
-            gastosDoMes.forEach(g => {
-                const numOriginal = g.valor.toString().replace('R$', '').trim().replace('.', '').replace(',', '.');
-                const valor = parseFloat(numOriginal) || 0;
-                totalMes += valor;
-                
-                linhasTabela += `
-                    <tr>
-                        <td>${g.dataCompra}</td>
-                        <td>${g.descricao} <br><small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small></td>
-                        <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
-                    </tr>
-                `;
+        const mesesMapeados = Array.from(mesesSet)
+            .filter(m => m.includes('/'))
+            .map(m => {
+                const [mes, ano] = m.split('/');
+                return { str: m, peso: parseInt(ano) * 12 + parseInt(mes) };
             });
 
-            const isExpanded = (mes === mesParaExpandir);
-            const collapsedClass = isExpanded ? '' : 'collapsed';
-            const nomeMesFormatado = formatarNomeMes(mes);
+        // Peso numérico do mês atual
+        const hoje = new Date();
+        const pesoAtual = hoje.getFullYear() * 12 + (hoje.getMonth() + 1);
 
-            const mesDiv = document.createElement('div');
-            mesDiv.className = 'mes-container';
-            mesDiv.innerHTML = `
-                <div class="mes-header ${collapsedClass}" onclick="toggleMes(this)">
-                    <span class="mes-title">${nomeMesFormatado}</span>
-                    <span class="mes-total">R$ ${totalMes.toFixed(2).replace('.', ',')}</span>
-                </div>
-                <div class="mes-body ${collapsedClass}">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Descrição / Parcela</th>
-                                <th>Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${linhasTabela}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            listaMeses.insertBefore(mesDiv, listaMeses.firstChild);
+        // Separa os meses: "Atuais e Futuros" vs "Passados"
+        const mesesFuturos = mesesMapeados
+            .filter(m => m.peso >= pesoAtual)
+            .sort((a, b) => a.peso - b.peso); // Ordem Crescente (Set, Out, Nov...)
+
+        const mesesPassados = mesesMapeados
+            .filter(m => m.peso < pesoAtual)
+            .sort((a, b) => b.peso - a.peso); // Ordem Decrescente (Agosto, Julho...)
+
+        // Descobre qual mês deve vir expandido por padrão
+        let mesParaExpandir = null;
+        if (mesesFuturos.length > 0) {
+            // Expande o mês atual, se não achar o mês atual, expande o mês futuro mais próximo
+            const temMesAtual = mesesFuturos.some(m => m.peso === pesoAtual);
+            mesParaExpandir = temMesAtual ? pesoAtual : mesesFuturos[0].peso;
+        }
+
+        // 1. Renderiza os Meses Atuais e Futuros
+        mesesFuturos.forEach(m => {
+            const isExpanded = (m.peso === mesParaExpandir);
+            listaMeses.appendChild(criarElementoMes(m.str, isExpanded)); // Usando appendChild mantém a ordem!
         });
+
+        // 2. Renderiza a Divisória de Meses Anteriores e insere os meses antigos
+        if (mesesPassados.length > 0) {
+            const divider = document.createElement('h3');
+            divider.className = 'divider';
+            divider.innerHTML = '<span>Meses Anteriores</span>';
+            listaMeses.appendChild(divider);
+
+            mesesPassados.forEach(m => {
+                // Meses passados começam sempre retraídos (isExpanded = false)
+                listaMeses.appendChild(criarElementoMes(m.str, false));
+            });
+        }
     }
 </script>
 
