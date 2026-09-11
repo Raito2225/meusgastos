@@ -25,7 +25,7 @@
         button:hover { background-color: #1d4ed8; }
         #status { margin-top: 15px; text-align: center; font-size: 14px; }
 
-        /* Dashboard - Lista Expansível (Acordeão) */
+        /* Dashboard - Lista Expansível */
         .dashboard-header { text-align: center; margin-bottom: 20px; color: var(--primary); }
         .mes-container { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: var(--card); }
         
@@ -106,8 +106,17 @@
 </div>
 
 <script>
-    // COLE SUA URL AQUI NAS ASPAS ABAIXO:
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec';
+    // =========================================================
+    // CONFIGURAÇÕES - COLE SUAS URLs AQUI
+    // =========================================================
+    
+    // URL gerada pelo Google Apps Script (Para SALVAR os dados)
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec'; 
+    
+    // URL gerada em "Publicar na web > formato CSV" (Para LER os dados)
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0gqmdVYvp5bbtA0xTj7rGVLvnzkfdUZ-bNCjIyX_zgCdjryXlqZ48nvG9wyoosU9Bn_wmS6SZiXCH/pub?gid=51915627&single=true&output=csv'; 
+
+    // =========================================================
 
     document.getElementById('dataCompra').valueAsDate = new Date();
     let todosOsGastos = []; 
@@ -125,6 +134,7 @@
         document.getElementById('parcelas').required = isParcelado;
     }
 
+    // Lógica para SALVAR o gasto (Continua usando o Apps Script / POST)
     document.getElementById('gastoForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');
@@ -170,31 +180,63 @@
         return `${nomes[parseInt(m) - 1]}/${a}`;
     }
 
+    // Converte o texto CSV recebido da planilha em um Array de objetos
+    function processarCSV(csvTexto) {
+        const linhas = csvTexto.split('\n');
+        const resultado = [];
+        
+        for (let i = 1; i < linhas.length; i++) { // Começa do 1 para pular o cabeçalho
+            if (linhas[i].trim() === '') continue;
+            
+            // Separa por vírgula (expressão regular evita quebrar vírgulas dentro de textos)
+            const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            
+            // Se a linha tiver dados válidos, salva no array limpando aspas e os apóstrofos que colocamos no backend
+            if(valores.length >= 7) {
+                resultado.push({
+                    dataCompra: valores[0].replace(/['"]/g, '').trim(),
+                    mesAnoPagamento: valores[1].replace(/['"]/g, '').trim(),
+                    descricao: valores[2].replace(/['"]/g, '').trim(),
+                    tipo: valores[3].replace(/['"]/g, '').trim(),
+                    formaPagamento: valores[4].replace(/['"]/g, '').trim(),
+                    parcela: valores[5].replace(/['"]/g, '').trim(),
+                    valor: valores[6].replace(/['"]/g, '').trim()
+                });
+            }
+        }
+        return resultado;
+    }
+
+    // Lógica para LER os dados (Agora puxa direto do CSV ultra rápido)
     function carregarDados() {
         const listaMeses = document.getElementById('listaMeses');
-        listaMeses.innerHTML = '<div class="carregando">Buscando faturas na planilha...</div>';
+        listaMeses.innerHTML = '<div class="carregando">Lendo a planilha...</div>';
         
-        fetch(SCRIPT_URL)
-        .then(res => res.json())
-        .then(resposta => {
-            if(resposta.status !== 'sucesso') throw new Error();
-            todosOsGastos = resposta.dados;
+        // Colocamos o timestamp no final da URL para forçar o Google a não usar cache antigo
+        const urlSemCache = CSV_URL + "&t=" + new Date().getTime();
+
+        fetch(urlSemCache)
+        .then(res => {
+            if(!res.ok) throw new Error("Erro de rede");
+            return res.text();
+        })
+        .then(csvTexto => {
+            todosOsGastos = processarCSV(csvTexto);
             renderizarDashboard();
         }).catch(err => {
-            listaMeses.innerHTML = '<div class="carregando" style="color:red">Erro ao carregar os dados.</div>';
+            listaMeses.innerHTML = '<div class="carregando" style="color:red">Erro ao baixar dados do Google Sheets. Certifique-se de que publicou o CSV.</div>';
         });
     }
 
     function renderizarDashboard() {
         const listaMeses = document.getElementById('listaMeses');
-        listaMeses.innerHTML = ''; // Limpa a tela de loading
+        listaMeses.innerHTML = ''; 
 
         if(todosOsGastos.length === 0) {
             listaMeses.innerHTML = '<div class="carregando">Nenhum gasto registrado ainda.</div>';
             return;
         }
 
-        // Pega todos os meses únicos e ordena (mais antigo pro mais novo)
         const mesesSet = new Set(todosOsGastos.map(g => g.mesAnoPagamento));
         const mesesArr = Array.from(mesesSet).sort((a, b) => {
             if(!a.includes('/') || !b.includes('/')) return 0;
@@ -202,14 +244,10 @@
             return new Date(yA, mA - 1) - new Date(yB, mB - 1);
         });
 
-        // Identifica o mês atual para saber qual deixar aberto (ex: 09/2026)
         const hoje = new Date();
         const mesAtualStr = (hoje.getMonth() + 1).toString().padStart(2, '0') + '/' + hoje.getFullYear();
-        
-        // Se o mês atual não tiver dados, deixa o último mês disponível aberto
         const mesParaExpandir = mesesArr.includes(mesAtualStr) ? mesAtualStr : mesesArr[mesesArr.length - 1];
 
-        // Constrói a caixinha de cada mês
         mesesArr.forEach(mes => {
             const gastosDoMes = todosOsGastos.filter(g => g.mesAnoPagamento === mes);
             let totalMes = 0;
@@ -229,12 +267,10 @@
                 `;
             });
 
-            // Verifica se este mês é o que deve ficar aberto
             const isExpanded = (mes === mesParaExpandir);
             const collapsedClass = isExpanded ? '' : 'collapsed';
             const nomeMesFormatado = formatarNomeMes(mes);
 
-            // Cria o HTML do mês
             const mesDiv = document.createElement('div');
             mesDiv.className = 'mes-container';
             mesDiv.innerHTML = `
@@ -258,7 +294,6 @@
                 </div>
             `;
             
-            // Adiciona a caixinha na tela (o insertBefore faz os meses mais novos ficarem no topo)
             listaMeses.insertBefore(mesDiv, listaMeses.firstChild);
         });
     }
