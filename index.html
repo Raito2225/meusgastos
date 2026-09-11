@@ -40,7 +40,7 @@
         <div class="tab" onclick="mudarAba('dashboard'); carregarDados()">Dashboard</div>
     </div>
 
-    <!-- ABA DE LANÇAR OS GASTOS -->
+    <!-- Lançamentos -->
     <div id="lancamento" class="tab-content active">
         <form id="gastoForm">
             <div class="form-group">
@@ -65,7 +65,7 @@
             <div class="form-group">
                 <label>Forma de Pagamento</label>
                 <select id="formaPagamento" onchange="verificarParcelas()" required>
-                    <option value="Débito / Pix / Dinheiro">Débito / Pix / Dinheiro (Cai no Mês Atual)</option>
+                    <option value="Débito / Pix / Dinheiro">Débito / Pix / Dinheiro (Mês Atual)</option>
                     <option value="Cartão de Crédito (1x)">Cartão de Crédito - 1x (Próxima Fatura)</option>
                     <option value="Cartão de Crédito (Parcelado)">Cartão de Crédito - Parcelado</option>
                 </select>
@@ -79,7 +79,7 @@
         </form>
     </div>
 
-    <!-- ABA DO DASHBOARD -->
+    <!-- Dashboard -->
     <div id="dashboard" class="tab-content">
         <div class="resumo-card">
             <h3>
@@ -107,7 +107,7 @@
 </div>
 
 <script>
-    // COLE SUA URL AQUI NESTA LINHA ABAIXO
+    // COLE SUA URL DO APPS SCRIPT AQUI
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec';
 
     document.getElementById('dataCompra').valueAsDate = new Date();
@@ -158,6 +158,14 @@
         .finally(() => { btn.innerText = 'Registrar Gasto'; btn.disabled = false; });
     });
 
+    // Função para traduzir "10/2026" para "Outubro/2026"
+    function formatarNomeMes(mesAno) {
+        if(!mesAno || !mesAno.includes('/')) return mesAno;
+        const [m, a] = mesAno.split('/');
+        const nomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        return `${nomes[parseInt(m) - 1]}/${a}`;
+    }
+
     function carregarDados() {
         document.getElementById('tabelaDados').innerHTML = '<tr><td colspan="3" class="carregando">Buscando faturas...</td></tr>';
         
@@ -180,6 +188,7 @@
         todosOsGastos.forEach(g => mesesSet.add(g.mesAnoPagamento));
         
         const mesesArr = Array.from(mesesSet).sort((a, b) => {
+            if(!a.includes('/') || !b.includes('/')) return 0;
             const [mA, yA] = a.split('/'); const [mB, yB] = b.split('/');
             return new Date(yA, mA - 1) - new Date(yB, mB - 1);
         });
@@ -187,7 +196,8 @@
         selectMes.innerHTML = '';
         mesesArr.forEach(m => {
             const opt = document.createElement('option');
-            opt.value = m; opt.textContent = m;
+            opt.value = m; // Valor interno continua MM/YYYY (10/2026)
+            opt.textContent = formatarNomeMes(m); // Usuário vê "Outubro/2026"
             selectMes.appendChild(opt);
         });
 
@@ -209,7 +219,9 @@
         const filtrados = todosOsGastos.filter(g => g.mesAnoPagamento === mesSelecionado);
         
         filtrados.forEach(g => {
-            const valor = parseFloat(g.valor);
+            // Conversão de valor com segurança para evitar NaN se a planilha estiver suja
+            const numOriginal = g.valor.toString().replace('R$', '').trim().replace('.', '').replace(',', '.');
+            const valor = parseFloat(numOriginal) || 0;
             total += valor;
             
             const tr = document.createElement('tr');
