@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Controle de Gastos</title>
     
-    <!-- Configurações para PWA (Aplicativo) -->
+    <!-- Configurações para PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
@@ -14,45 +14,70 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --fixo: #2563eb; --variavel: #f59e0b; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); padding: 10px; display: flex; justify-content: center; margin: 0; }
-        .container { background-color: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        /* Cores do Modo Claro (Padrão) */
+        :root { 
+            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; 
+            --text: #1e293b; --border: #e2e8f0; --fixo: #2563eb; 
+            --variavel: #f59e0b; --text-muted: #64748b; --input-bg: #ffffff;
+        }
         
+        /* Cores do Modo Escuro */
+        body.dark-mode { 
+            --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; 
+            --text: #f8fafc; --border: #334155; --fixo: #60a5fa; 
+            --variavel: #fbbf24; --text-muted: #94a3b8; --input-bg: #0f172a;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); padding: 10px; display: flex; justify-content: center; margin: 0; transition: background-color 0.3s, color 0.3s; }
+        .container { background-color: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 600px; transition: background-color 0.3s; }
+        
+        /* Cabeçalho e Botão Dark Mode */
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .header-top h2 { margin: 0; color: var(--primary); font-size: 20px; }
+        .theme-toggle { background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 5px; border-radius: 50%; transition: background 0.3s; }
+        .theme-toggle:hover { background: var(--border); }
+
         .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
-        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: #64748b; transition: 0.3s; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: var(--text-muted); transition: 0.3s; }
         .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); background-color: var(--input-bg); color: var(--text); border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: 0.3s; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
         #campo-parcelas { display: none; }
-        button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button.btn-submit { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button.btn-submit:hover { opacity: 0.9; }
         
-        .dashboard-header { text-align: center; margin-bottom: 10px; color: var(--primary); }
         .grafico-container { position: relative; height: 180px; width: 100%; margin-bottom: 20px; }
         
-        .mes-container { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: var(--card); }
+        .mes-container { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: var(--card); transition: 0.3s; }
         .mes-header { background: var(--primary); color: white; padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; user-select: none; }
-        .mes-header.collapsed { background: #f1f5f9; color: var(--text); }
+        .mes-header.collapsed { background: var(--border); color: var(--text); }
         .mes-title { font-size: 16px; font-weight: bold; }
         .mes-total { font-size: 18px; font-weight: bold; }
         .mes-body { display: block; padding: 0; }
         .mes-body.collapsed { display: none; }
         
-        .divider { text-align: center; margin: 30px 0 20px 0; color: #64748b; font-size: 15px; border-bottom: 1px solid #cbd5e1; line-height: 0.1em; }
-        .divider span { background: var(--card); padding: 0 15px; }
+        .divider { text-align: center; margin: 30px 0 20px 0; color: var(--text-muted); font-size: 15px; border-bottom: 1px solid var(--border); line-height: 0.1em; }
+        .divider span { background: var(--card); padding: 0 15px; transition: 0.3s; }
         
         table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
-        .carregando { text-align: center; padding: 20px; color: #64748b; }
+        th { background-color: var(--bg); color: var(--text-muted); font-weight: 600; }
+        .carregando { text-align: center; padding: 20px; color: var(--text-muted); }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="header-top">
+        <h2>Controle de Gastos</h2>
+        <button id="themeToggle" class="theme-toggle">🌙</button>
+    </div>
+
     <div class="tabs">
         <div class="tab active" onclick="mudarAba('lancamento')">Lançar</div>
         <div class="tab" onclick="mudarAba('dashboard'); carregarDados()">Dashboard</div>
@@ -92,8 +117,8 @@
                 <label>Número de Parcelas</label>
                 <input type="number" id="parcelas" min="2" value="2">
             </div>
-            <button type="submit" id="btnSubmit">Registrar Gasto</button>
-            <div id="status"></div>
+            <button type="submit" id="btnSubmit" class="btn-submit">Registrar Gasto</button>
+            <div id="status" style="margin-top:15px; text-align:center; font-size:14px;"></div>
         </form>
     </div>
 
@@ -110,12 +135,31 @@
 </div>
 
 <script>
-    // Suas URLs já configuradas
+    // Suas URLs
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1cKThLLx3EF3wERPK6i4USCyXDHfrwKboGZnUcn0QGRzZg3AnfUTnZwSz9bhFCbBQ/exec'; 
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0gqmdVYvp5bbtA0xTj7rGVLvnzkfdUZ-bNCjIyX_zgCdjryXlqZ48nvG9wyoosU9Bn_wmS6SZiXCH/pub?gid=51915627&single=true&output=csv'; 
 
     let todosOsGastos = []; 
-    let myChart = null; // Guarda a instância do gráfico
+    let myChart = null; 
+
+    // LÓGICA DO MODO ESCURO
+    const btnTheme = document.getElementById('themeToggle');
+    if(localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        btnTheme.innerText = '☀️';
+    }
+
+    btnTheme.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        btnTheme.innerText = isDark ? '☀️' : '🌙';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        
+        // Recarrega o gráfico para ajustar as cores se estivermos na aba do dashboard
+        if(todosOsGastos.length > 0 && document.getElementById('dashboard').classList.contains('active')) {
+            renderizarDashboard();
+        }
+    });
 
     document.getElementById('dataCompra').valueAsDate = new Date();
 
@@ -150,7 +194,7 @@
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(res => res.json())
         .then(data => {
-            status.innerText = 'Registrado com sucesso!'; status.style.color = 'green';
+            status.innerText = 'Registrado com sucesso!'; status.style.color = '#22c55e';
             document.getElementById('gastoForm').reset();
             document.getElementById('dataCompra').valueAsDate = new Date();
             verificarParcelas();
@@ -218,7 +262,7 @@
                     <td><small>${g.dataCompra.slice(0,5)}</small></td>
                     <td>
                         <span style="color:${corPonto}; font-size:10px;">⬤</span> ${g.descricao} <br>
-                        <small style="color:#64748b">${g.formaPagamento} (Parc. ${g.parcela})</small>
+                        <small style="color:var(--text-muted)">${g.formaPagamento} (Parc. ${g.parcela})</small>
                     </td>
                     <td>R$ ${valor.toFixed(2).replace('.', ',')}</td>
                 </tr>
@@ -234,8 +278,8 @@
                 <div style="display:flex; flex-direction:column;">
                     <span class="mes-title">${formatarNomeMes(mesStr)}</span>
                     <small style="font-size:11px; font-weight:normal; margin-top:2px;">
-                        <span style="color:${isExpanded ? '#bae6fd' : '#2563eb'};">Fixo: R$ ${totalFixo.toFixed(2)}</span> | 
-                        <span style="color:${isExpanded ? '#fde68a' : '#f59e0b'};">Var: R$ ${totalVar.toFixed(2)}</span>
+                        <span style="color:${isExpanded ? '#bae6fd' : 'var(--fixo)'};">Fixo: R$ ${totalFixo.toFixed(2)}</span> | 
+                        <span style="color:${isExpanded ? '#fde68a' : 'var(--variavel)'};">Var: R$ ${totalVar.toFixed(2)}</span>
                     </small>
                 </div>
                 <span class="mes-total">R$ ${totalMes.toFixed(2).replace('.', ',')}</span>
@@ -248,7 +292,10 @@
     }
 
     function atualizarGrafico(mesesFuturos) {
-        // Pega no máximo os próximos 6 meses para o gráfico não ficar espremido
+        const isDark = document.body.classList.contains('dark-mode');
+        const corTexto = isDark ? '#cbd5e1' : '#475569';
+        const corGrade = isDark ? '#334155' : '#e2e8f0';
+
         const mesesGrafico = mesesFuturos.slice(0, 6).reverse(); 
         
         const labels = mesesGrafico.map(m => formatarNomeMes(m.str).split('/')[0]);
@@ -271,7 +318,10 @@
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { 
+                    x: { ticks: { color: corTexto }, grid: { color: corGrade } },
+                    y: { beginAtZero: true, ticks: { color: corTexto }, grid: { color: corGrade } } 
+                }
             }
         });
     }
@@ -309,7 +359,6 @@
         }
     }
 
-    // REGISTRO DO SERVICE WORKER (Para permitir instalar no celular)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Falhou: ', err));
